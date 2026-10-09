@@ -1,5 +1,6 @@
 from nicegui import ui, run
 from modules.utils import check_connect, connect_to_device, _is_PC_app
+from modules.configs.settingMaps import cloud2entry
 
 
 def set_emulator(config):
@@ -31,11 +32,38 @@ def set_emulator(config):
     ui.link_target("EMULATOR")
     ui.label(config.get_text("setting_emulator")).style('font-size: x-large')
 
-    with ui.row().bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: not _is_PC_app(v)):    
+    # ============ 游戏运行平台（本地 / 云游戏平台） ============
+    def set_run_platform(platform_name):
+        config.userconfigdict['RUN_PLATFORM'] = platform_name
+        # 切换云平台时自动预填入口activity（不覆盖用户对其他平台入口的手动修改）
+        if platform_name in cloud2entry and config.userconfigdict.get('CLOUD_PLATFORM_ENTRY') != cloud2entry[platform_name]:
+            config.userconfigdict['CLOUD_PLATFORM_ENTRY'] = cloud2entry[platform_name]
+
+    with ui.card():
+        ui.label(config.get_text("config_run_platform")).style('font-size: large')
+        ui.radio({
+                "LOCAL":config.get_text("config_run_platform_local"),
+                "CLOUD_JYS":config.get_text("config_run_platform_cloud_jys")
+            },
+            value=config.userconfigdict['RUN_PLATFORM'], on_change=lambda a:set_run_platform(a.value)).props('inline')
+        # 云游戏模式子选项
+        with ui.column().bind_visibility_from(config.userconfigdict, "RUN_PLATFORM", lambda v: str(v).startswith("CLOUD_")):
+            ui.input(config.get_text("config_cloud_entry")).bind_value(config.userconfigdict, 'CLOUD_PLATFORM_ENTRY').style('width: 420px')
+            ui.input(config.get_text("config_cloud_game_name")).bind_value(config.userconfigdict, 'CLOUD_GAME_NAME').style('width: 420px')
+            ui.number(config.get_text("config_cloud_stream_timeout"), min=60, precision=0, step=10).bind_value(config.userconfigdict, "CLOUD_STREAM_TIMEOUT", forward=lambda x: int(x)).style("width: 240px")
+            # 仅国服提醒
+            ui.label(config.get_text("cloud_notice_cn_only")).style('color: red; font-size: medium')\
+                .bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: v != "CN")
+            ui.label(config.get_text("cloud_notice_update_invalid")).style('color: orange; font-size: medium')
+
+    with ui.row().bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: not _is_PC_app(v) and config.userconfigdict.get("RUN_PLATFORM", "LOCAL") == "LOCAL"):
     #  大更新配置
         ui.checkbox(config.get_text("config_big_update")).bind_value(config.userconfigdict, "BIG_UPDATE")
 
     ui.checkbox(config.get_text("adb_disable_auto_disconnect")).bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: not _is_PC_app(v)).bind_value(config.userconfigdict, "ADB_DISABLE_AUTO_DISCONNECT")
+
+    # 连接模拟器时清理所有已打开的应用
+    ui.checkbox(config.get_text("config_kill_all_apps_when_connect")).bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: not _is_PC_app(v)).bind_value(config.userconfigdict, "KILL_ALL_APPS_WHEN_CONNECT")
     
     with ui.row().bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: not _is_PC_app(v)):
         ui.label(config.get_text("big_update_type")).style('font-size: medium').bind_visibility_from(config.userconfigdict, "BIG_UPDATE", lambda x: x)

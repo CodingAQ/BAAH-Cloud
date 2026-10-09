@@ -59,6 +59,20 @@ defaultUserDict = {
         },
         "p": lambda val, parsedjson: "PC_"+val if val.startswith("STEAM") else val # 2.0.10 兼容 STEAM 到 PC_STEAM 的改名
     },
+    # 云游戏平台支持：游戏运行平台，LOCAL为本地游戏程序，CLOUD_开头为第三方云游戏平台
+    "RUN_PLATFORM":{"d":"LOCAL", "s":["LOCAL", "CLOUD_JYS"]},
+    # 云平台的入口activity，缺省时由RUN_PLATFORM从settingMaps.cloud2entry映射
+    "CLOUD_PLATFORM_ENTRY":{
+        "d":"",
+        "m":{
+            "from": "RUN_PLATFORM",
+            "map": lambda x, parsedjson: cloud2entry.get(x, "")
+        }
+    },
+    # 在云平台内要启动的游戏名称（用于OCR查找游戏入口）
+    "CLOUD_GAME_NAME":{"d":"蔚蓝档案"},
+    # 等待云游戏串流建立的超时时间（秒）
+    "CLOUD_STREAM_TIMEOUT":{"d":240},
     "TARGET_EMULATOR_PATH":{"d":""},
     "CLOSE_EMULATOR_BAAH":{"d":False}, # deprecate
     "CLOSE_EMULATOR_FINISH":{
@@ -115,7 +129,8 @@ defaultUserDict = {
             "from": "SERVER_TYPE",
             "map": lambda x, parsedjson: server2activity[x] if x in server2activity else "com.nexon.bluearchive/.MxUnityPlayerActivity",
         },
-        "p": lambda val, parsedjson: server2activity[parsedjson["SERVER_TYPE"]] if parsedjson["SERVER_TYPE"] in server2activity else val
+        # 云游戏模式下，ACTIVITY_PATH覆写为云平台入口（前台包名监测/打开/关闭游戏都作用于云平台，同PC版的窗口名/进程名机制）
+        "p": lambda val, parsedjson: cloud2entry[parsedjson["RUN_PLATFORM"]] if parsedjson.get("RUN_PLATFORM") in cloud2entry else (server2activity[parsedjson["SERVER_TYPE"]] if parsedjson["SERVER_TYPE"] in server2activity else val)
     },
     "NEXT_CONFIG" : {"d":""},
     "ADB_PATH":{"d":"./tools/adb/adb.exe"},
@@ -125,6 +140,8 @@ defaultUserDict = {
     "TARGET_IP_PATH":{"d":"127.0.0.1"},
     "TARGET_PORT":{"d":5555},
     "ADB_DISABLE_AUTO_DISCONNECT": {"d":False},
+    # 连接模拟器时结束所有已打开的应用并回到桌面
+    "KILL_ALL_APPS_WHEN_CONNECT":{"d":False},
     "KILL_PORT_IF_EXIST":{"d":False},
     "TIME_AFTER_CLICK":{"d": 0.7},
     "RESPOND_Y":{

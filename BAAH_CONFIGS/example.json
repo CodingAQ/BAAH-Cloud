@@ -154,9 +154,9 @@
     ],
     "SERVER_INFO": "服务器信息",
     "PIC_PATH": "./DATA/assets_cn",
-    "ACTIVITY_PATH": "com.RoamingStar.BlueArchive/com.tech.sdk.bridge.TechSDKUnityPlayerActivity",
+    "ACTIVITY_PATH": "com.jys/.ui.SplashActivity",
     "Warning": "下方内容一般无需更改",
-    "ADB_PATH": "./tools/adb/adb.exe",
+    "ADB_PATH": "D:/adb/adb.exe",
     "SCREENSHOT_NAME": "e2419474.png",
     "RESPOND_Y": 40,
     "NEXT_CONFIG": "",
@@ -714,5 +714,63 @@
     "GRAND_ASSAULT_NO_FIGHT": false,
     "RETRY_WHEN_ERROR": 0,
     "RETRY_WHEN_ERROR_FROM_LAST_TASK": false,
-    "TIMETABLE_SPECIAL_STUDENT_PIC": []
+    "TIMETABLE_SPECIAL_STUDENT_PIC": [],
+    "TASK_ORDER_GROUP": {
+        "ALL_PIPELINES": [
+            {
+                "TASK_PIPELINE": [
+                    "清momotalk",
+                    "普通推图",
+                    "困难推图",
+                    "咖啡馆",
+                    "战术大赛",
+                    "课程表",
+                    "社团",
+                    "战术大赛",
+                    "悬赏通缉",
+                    "学园交流会",
+                    "战术大赛",
+                    "困难关卡",
+                    "特殊任务",
+                    "战术大赛",
+                    "活动关卡",
+                    "每日任务",
+                    "邮件",
+                    "活动关卡",
+                    "每日任务"
+                ],
+                "TASK_ONOFF": [
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    true,
+                    false,
+                    false
+                ]
+            }
+        ],
+        "ACTIVATE_IND": 0
+    },
+    "RUN_PLATFORM": "CLOUD_JYS",
+    "CLOUD_PLATFORM_ENTRY": "com.jys/.ui.SplashActivity",
+    "CLOUD_GAME_NAME": "蔚蓝档案",
+    "CLOUD_STREAM_TIMEOUT": 240,
+    "ADB_DISABLE_AUTO_DISCONNECT": false,
+    "EVENT_ENTER_ROLL_PAGE_BUTTON": "",
+    "EVENT_ROLL_TARGET_COUNT": 3,
+    "EVENT_ENTER_EXCHANGE_PAGE_BUTTON": "",
+    "TRY_ENTER_EVENT_AFTER_FAIL_NUMBER": 2
 }

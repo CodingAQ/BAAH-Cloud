@@ -67,6 +67,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+/test_*.py
+DATA/jys_*.png
 
 # Translations
 *.mo
@@ -176,6 +178,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 .vscode/
+.workbuddy/
 
 # ignore all config files, except example.json
 BAAH_CONFIGS/

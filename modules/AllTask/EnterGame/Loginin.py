@@ -9,7 +9,7 @@ from modules.AllTask.Task import Task
 
 from modules.utils.log_utils import logging
 
-from modules.utils import click, swipe, match, page_pic, button_pic, popup_pic, sleep, check_app_running, open_app, config, screenshot, EmulatorBlockError, istr, CN, EN, match_pixel, OCR_LANG, ocr_area, get_screenshot_cv_data, is_server_type_in_group, MultiServerType, get_correct_asset, AssetMappingKeys
+from modules.utils import click, swipe, match, page_pic, button_pic, popup_pic, sleep, check_app_running, open_app, config, screenshot, EmulatorBlockError, istr, CN, EN, match_pixel, OCR_LANG, ocr_area, get_screenshot_cv_data, is_server_type_in_group, MultiServerType, get_correct_asset, AssetMappingKeys, is_cloud_mode
 
 from modules.AllTask.EnterGame.GameUpdate import GameUpdate
 
@@ -152,6 +152,12 @@ class Loginin(Task):
 
         # 大更新
         elif match(popup_pic(PopupName.POPUP_UPDATE_APP), threshold=0.8):
+            if is_cloud_mode():
+                # 云游戏在云端更新，本地安装/更新流程不适用
+                raise Exception(istr({
+                    CN: "云游戏模式下不支持游戏包体更新流程，游戏更新由云平台负责，请重启脚本重试",
+                    EN: "Package update is not supported in cloud game mode, the game update is handled by the cloud platform, please restart the script"
+                }))
             if config.userconfigdict["BIG_UPDATE"]:
                 GameUpdate().run()
                 raise EmulatorBlockError(istr({

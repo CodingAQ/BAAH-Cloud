@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import traceback
 from modules.configs.MyConfig import config
@@ -16,6 +17,32 @@ def _is_PC_app(server_type):
 
 def _is_STEAM_app(server_type):
     return "STEAM" in server_type.upper()
+
+def is_cloud_mode(use_config=None) -> bool:
+    """
+    判断当前配置是否使用云游戏平台运行游戏（RUN_PLATFORM 为 CLOUD_ 开头）
+    """
+    target_config = config if not use_config else use_config
+    return str(target_config.userconfigdict.get("RUN_PLATFORM", "LOCAL")).upper().startswith("CLOUD_")
+
+def is_cloud_streaming(use_config=None) -> bool:
+    """
+    判断云游戏是否已处于串流运行状态（前台为云平台的串流Activity）
+
+    云游戏模式下，游戏画面运行在云端，前台包名始终是云平台自己的包名，
+    因此"游戏是否打开"需判断前台activity是否为平台的串流页
+    """
+    if not is_cloud_mode(use_config):
+        return False
+    target_config = config if not use_config else use_config
+    # 延迟导入避免循环依赖
+    from modules.configs.settingMaps import cloud2stream_activity
+    stream_activity = cloud2stream_activity.get(target_config.userconfigdict["RUN_PLATFORM"], "")
+    if not stream_activity:
+        # 平台没有配置串流页特征，退化为判断云平台是否在前台
+        return check_app_running(target_config.userconfigdict["CLOUD_PLATFORM_ENTRY"], printit=False)
+    now_app = get_now_running_app(target_config)
+    return stream_activity in now_app
 
 def getNewestSeialNumber(use_config=None):
     # 如果传入指定的配置文件，就使用指定的配置文件
@@ -277,6 +304,61 @@ def close_app(activity_path: str):
         return True
     appname = activity_path.split("/")[0]
     subprocess_run([get_config_adb_path(), "-s", getNewestSeialNumber(), 'shell', 'am', 'force-stop', appname], isasync=True)
+
+def _should_skip_when_kill_all(package_name: str) -> bool:
+    """结束所有应用时应当跳过的系统关键包（桌面/系统UI/输入法等）"""
+    name = package_name.lower()
+    skip_keywords = ["launcher", "systemui", "inputmethod"]
+    return any(keyword in name for keyword in skip_keywords)
+
+def get_recent_task_packages(use_config=None):
+    """
+    获取最近任务列表中打开过的用户应用包名（含当前前台应用）
+
+    通过解析 dumpsys activity recents 里每条 Intent 的 cmp=组件信息提取包名
+    """
+    target_config = config if not use_config else use_config
+    packages = []
+    # 当前前台应用
+    now_app = get_now_running_app(target_config)
+    if now_app and "/" in now_app:
+        packages.append(now_app.split("/")[0])
+    # 最近任务里的应用
+    output = subprocess_run([get_config_adb_path(target_config), "-s", getNewestSeialNumber(target_config),
+                             'shell', 'dumpsys', 'activity', 'recents']).stdout
+    for line in output.splitlines():
+        # 兼容 cmp=com.pkg/.Act 和 cmp=ComponentInfo{com.pkg/.Act} 两种格式
+        match_res = re.search(r"cmp=(?:ComponentInfo\{)?([\w.]+)/", line)
+        if match_res:
+            package_name = match_res.group(1)
+            if package_name not in packages:
+                packages.append(package_name)
+    return packages
+
+def kill_all_apps(use_config=None):
+    """
+    结束模拟器里所有已打开的用户应用，并按Home键回到桌面
+
+    跳过桌面/系统UI/输入法等系统关键应用
+    """
+    target_config = config if not use_config else use_config
+    packages = get_recent_task_packages(target_config)
+    logging.info({"zh_CN": f"检测到已打开的应用: {packages}",
+                  "en_US": f"Detected opened apps: {packages}"})
+    stopped_count = 0
+    for package_name in packages:
+        if _should_skip_when_kill_all(package_name):
+            continue
+        subprocess_run([get_config_adb_path(target_config), "-s", getNewestSeialNumber(target_config),
+                        'shell', 'am', 'force-stop', package_name])
+        stopped_count += 1
+        logging.info({"zh_CN": f"已结束应用: {package_name}",
+                      "en_US": f"Killed app: {package_name}"})
+    # 按Home键确保回到桌面
+    subprocess_run([get_config_adb_path(target_config), "-s", getNewestSeialNumber(target_config),
+                    'shell', 'input', 'keyevent', '3'])
+    logging.info({"zh_CN": f"已结束 {stopped_count} 个应用并回到桌面",
+                  "en_US": f"Killed {stopped_count} apps and returned to home screen"})
 
 def get_wm_size(use_config=None):
     """

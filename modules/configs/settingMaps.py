@@ -29,6 +29,16 @@ server2activity = {
 # important
 activity2server = {v:k for k,v in server2activity.items()}
 
+# ===========云游戏平台映射（与 RUN_PLATFORM 配置项对应）===========
+# 云平台的入口activity（am start 用）
+cloud2entry = {
+    "CLOUD_JYS":"com.jys/.ui.SplashActivity",  # 集游社
+}
+# 云平台处于"云游戏串流运行中"状态的activity特征
+cloud2stream_activity = {
+    "CLOUD_JYS":"com.haima.cloud.mobile.sdk.ui.activity.CloudPlayActivity",
+}
+
 server2respond = {
     "JP":40,
     "GLOBAL":40,

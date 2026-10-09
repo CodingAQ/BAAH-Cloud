@@ -38,7 +38,7 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
 
     import os
     import psutil
-    from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN, check_if_process_exist, _is_PC_app, get_screenshot_cv_data,return_now_activate_pipeline
+    from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN, check_if_process_exist, _is_PC_app, get_screenshot_cv_data,return_now_activate_pipeline, is_cloud_mode, is_cloud_streaming, get_config_adb_path, kill_all_apps
     from modules.AllTask.myAllTask import my_AllTask
     from define_actions import FlowActionGroup
 
@@ -209,6 +209,13 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         """
         检查adb连接
         """
+        # 检查adb路径是否存在，避免后面报难以理解的WinError 2
+        adb_path = get_config_adb_path()
+        if not os.path.exists(adb_path):
+            raise Exception(istr({
+                CN: f"adb路径不存在: {adb_path}，请检查配置里的ADB_PATH设置",
+                EN: f"adb path not found: {adb_path}, please check the ADB_PATH setting in the config"
+            }))
         # 检查adb连接
         if not config.userconfigdict['ADB_DISABLE_AUTO_DISCONNECT']:
             disconnect_this_device()
@@ -227,6 +234,22 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
             # 提醒用户启动BAAH时，不要启动模拟器
             raise Exception("检测到启动BAAH前 端口已被占用，但BAAH无法连接至该端口。上次模拟器可能未被正常关闭，请在启动BAAH前关闭模拟器")
         raise Exception("adb连接失败, 请检查配置里的adb端口")
+
+    def BAAH_kill_all_apps():
+        """
+        连接模拟器后，结束所有已打开的应用并回到桌面
+        """
+        if not config.userconfigdict["KILL_ALL_APPS_WHEN_CONNECT"]:
+            logging.info({"zh_CN": "未开启连接时结束所有应用，跳过清理",
+                          "en_US": "Kill all apps when connect is not enabled, skip cleaning"})
+            return
+        if _is_PC_app(config.userconfigdict["SERVER_TYPE"]):
+            logging.info({"zh_CN": "PC版本跳过结束应用", "en_US": "PC version skip killing apps"})
+            return
+        logging.info({"zh_CN": "连接模拟器成功，1秒后结束所有已打开的应用",
+                      "en_US": "Emulator connected, kill all opened apps in 1 second"})
+        sleep(1)
+        kill_all_apps()
 
     # def _do_user_defined_action(activity_name, action_list):
     #     """执行用户定义的点击坐标或图片序列"""
@@ -281,6 +304,31 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         """
         打开游戏
         """
+        if is_cloud_mode():
+            # 云游戏模式：打开云平台APP并启动云游戏，等待串流建立
+            # 此时 ACTIVITY_PATH 已被config解析为云平台入口
+            logging.info(istr({
+                CN: "检测到云游戏模式，启动云平台并进入游戏",
+                EN: "Cloud game mode detected, starting the cloud platform and entering the game"
+            }))
+            # 校验区服：云平台上的游戏区服有限制
+            from modules.configs.settingMaps import cloud2entry
+            platform_name = config.userconfigdict["RUN_PLATFORM"]
+            if platform_name == "CLOUD_JYS" and config.userconfigdict["SERVER_TYPE"] != "CN":
+                raise Exception(istr({
+                    CN: "集游社云游戏目前仅支持国服(CN)，请修改区服设置",
+                    EN: "JiYouShe cloud platform only supports CN server, please change the server setting"
+                }))
+            if is_cloud_streaming():
+                logging.info(istr({
+                    CN: "检测到云游戏已在串流中，跳过启动",
+                    EN: "Cloud game is already streaming, skip launching"
+                }))
+                return True
+            # 串流中断后（如模拟器重启）重新走一遍启动流程
+            from modules.AllTask.EnterGame.OpenCloudGame import launch_cloud_game
+            launch_cloud_game()
+            return True
         if check_app_running(config.userconfigdict['ACTIVITY_PATH']):
             logging.info({"zh_CN": "检测到游戏已经在运行", "en_US": "Detected that the game is already running"})
             return True
@@ -623,6 +671,7 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                 BAAH_release_adb_port()
                 BAAH_start_emulator()
                 BAAH_check_adb_connect()
+                BAAH_kill_all_apps()
                 BAAH_start_VPN()
                 BAAH_open_target_app()
                 
