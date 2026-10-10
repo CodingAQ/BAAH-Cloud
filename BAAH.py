@@ -656,6 +656,51 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         # TODO: 网页报告生成
         logging.info({"zh_CN": "错误报告生成完成", "en_US": "Crash report generated"})
                     
+    def continue_redo_tasks(consider_retry_config = False):
+        """出错后从出错点继续执行脚本（供各except分支共用）"""
+        if consider_retry_config:
+            # 配置文件是否有自动重新运行次数
+            rerun_max_times = config.userconfigdict["RETRY_WHEN_ERROR"]
+            # 脚本已经重新运行了几次
+            has_rerun_times = config.sessiondict["CURRENT_RETRY_TIMES"]
+            # 重新运行是否从上次中断点继续
+            from_last_break_task = config.userconfigdict["RETRY_WHEN_ERROR_FROM_LAST_TASK"]
+            if rerun_max_times == 0:
+                logging.info({"zh_CN": "配置文件未设置自动重新运行，跳过自动重新运行", "en_US": "The config does not set auto retry, skip auto retry"})
+                return
+            if has_rerun_times >= rerun_max_times:
+                logging.info({"zh_CN": f"已达到最大自动重新运行次数{rerun_max_times}，跳过自动重新运行", "en_US": f"Reached the max auto retry times {rerun_max_times}, skip auto retry"})
+                return
+            # 需要且可以重新运行脚本
+            if from_last_break_task:
+                # 记录CURRENT_PERIOD_TASK_INDEX
+                last_period_task_index = config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]
+            # 重新加载其他config值
+            config.parse_user_config(config.nowuserconfigname)
+            # 脚本重新运行次数加1
+            config.sessiondict["CURRENT_RETRY_TIMES"] = has_rerun_times + 1
+            if from_last_break_task:
+                # 重新加载CURRENT_PERIOD_TASK_INDEX
+                config.sessiondict["CURRENT_PERIOD_TASK_INDEX"] = last_period_task_index
+            mention_str = istr({
+                CN: f'脚本自动重新执行，当前重新执行 {has_rerun_times + 1}/{rerun_max_times} 次，从 任务{config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]} 开始执行',
+                EN: f'Auto rerun, current rerun times {has_rerun_times + 1}/{rerun_max_times}, rerun from task {config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]}'
+            })
+            logging.warn("========>")
+            logging.warn(mention_str)
+            logging.warn("<========")
+            # 执行BAAH
+            BAAH_main(run_precommand=False)
+        else:
+            # 记录CURRENT_PERIOD_TASK_INDEX
+            last_period_task_index = config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]
+            # 重新加载其他config值
+            config.parse_user_config(config.nowuserconfigname)
+            # 重新加载CURRENT_PERIOD_TASK_INDEX
+            config.sessiondict["CURRENT_PERIOD_TASK_INDEX"] = last_period_task_index
+            # 执行BAAH
+            BAAH_main(run_precommand=False)
+
     def BAAH_main(run_precommand = True):
         """
         执行BAAH主程序, 在此之前config应该已经被单独import然后解析为用户指定的配置文件->随后再导入my_AllTask以及其他依赖config的模块
@@ -702,6 +747,8 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                     }))
                 # sessionstorage里重启次数加1
                 store_restart_times = config.sessiondict["RESTART_EMULATOR_TIMES"] + 1
+                # 保存云游戏降级标记（重启模拟器后云游戏仍恢复失败则抛云游戏中断异常）
+                store_cloud_restarted_flag = config.sessiondict.get("CLOUD_RESTARTED_FLAG", False)
                 logging.info(istr({
                     CN: "关闭应用",
                     EN: "Close the app"
@@ -720,8 +767,28 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                 # 重新加载其他config值，覆盖模拟器重启次数到sessiondict
                 config.parse_user_config(config.nowuserconfigname)
                 config.sessiondict["RESTART_EMULATOR_TIMES"] = store_restart_times
+                # 回填云游戏降级标记
+                config.sessiondict["CLOUD_RESTARTED_FLAG"] = store_cloud_restarted_flag
                 # 防止重复调用precommand
                 BAAH_main(run_precommand=False)
+
+        # 云游戏恢复失败（已含一次模拟器重启）：不关游戏不关模拟器，保留断点走续跑
+        except CloudStreamInterruptError as csie:
+            logging.error(istr({
+                CN: f"云游戏恢复失败: {str(csie)}",
+                EN: f"Cloud game recovery failed: {str(csie)}"
+            }))
+            handle_error_mention(str(csie), logging.warn)
+            logging.save_custom_log_file()
+            config.append_noti_sentence(key="CLOUD_STREAM_INTERRUPT", sentence=istr({
+                CN: "云游戏恢复失败，任务中断",
+                EN: "Cloud game recovery failed, tasks interrupted"
+            }))
+            print_BAAH_finish()
+            # 保留断点自动重跑；未配置自动重跑则按错误流程收尾
+            if config.userconfigdict["RETRY_WHEN_ERROR"] > 0:
+                continue_redo_tasks(consider_retry_config=True)
+            BAAH_auto_quit(meet_error=True)
 
         # 最外层的except捕获正常运行过程中的错误 以及 模拟器重启次数达到最大值的错误
         except Exception as e:
@@ -752,50 +819,6 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
             print_BAAH_finish()
             
             print_BAAH_config_info()
-            def continue_redo_tasks(consider_retry_config = False):
-                """出错后用户选择从出错点继续执行脚本"""
-                if consider_retry_config:
-                    # 配置文件是否有自动重新运行次数
-                    rerun_max_times = config.userconfigdict["RETRY_WHEN_ERROR"]
-                    # 脚本已经重新运行了几次
-                    has_rerun_times = config.sessiondict["CURRENT_RETRY_TIMES"]
-                    # 重新运行是否从上次中断点继续
-                    from_last_break_task = config.userconfigdict["RETRY_WHEN_ERROR_FROM_LAST_TASK"]
-                    if rerun_max_times == 0:
-                        logging.info({"zh_CN": "配置文件未设置自动重新运行，跳过自动重新运行", "en_US": "The config does not set auto retry, skip auto retry"})
-                        return
-                    if has_rerun_times >= rerun_max_times:
-                        logging.info({"zh_CN": f"已达到最大自动重新运行次数{rerun_max_times}，跳过自动重新运行", "en_US": f"Reached the max auto retry times {rerun_max_times}, skip auto retry"})
-                        return
-                    # 需要且可以重新运行脚本
-                    if from_last_break_task:
-                        # 记录CURRENT_PERIOD_TASK_INDEX
-                        last_period_task_index = config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]
-                    # 重新加载其他config值
-                    config.parse_user_config(config.nowuserconfigname)
-                    # 脚本重新运行次数加1
-                    config.sessiondict["CURRENT_RETRY_TIMES"] = has_rerun_times + 1
-                    if from_last_break_task:
-                        # 重新加载CURRENT_PERIOD_TASK_INDEX
-                        config.sessiondict["CURRENT_PERIOD_TASK_INDEX"] = last_period_task_index
-                    mention_str = istr({
-                        CN: f'脚本自动重新执行，当前重新执行 {has_rerun_times + 1}/{rerun_max_times} 次，从 任务{config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]} 开始执行',
-                        EN: f'Auto rerun, current rerun times {has_rerun_times + 1}/{rerun_max_times}, rerun from task {config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]}'
-                    })
-                    logging.warn("========>")
-                    logging.warn(mention_str)
-                    logging.warn("<========")
-                    # 执行BAAH
-                    BAAH_main(run_precommand=False)
-                else:
-                    # 记录CURRENT_PERIOD_TASK_INDEX
-                    last_period_task_index = config.sessiondict["CURRENT_PERIOD_TASK_INDEX"]
-                    # 重新加载其他config值
-                    config.parse_user_config(config.nowuserconfigname)
-                    # 重新加载CURRENT_PERIOD_TASK_INDEX
-                    config.sessiondict["CURRENT_PERIOD_TASK_INDEX"] = last_period_task_index
-                    # 执行BAAH
-                    BAAH_main(run_precommand=False)
             # 如果用户配置文件选择自动重新运行
             if config.userconfigdict["RETRY_WHEN_ERROR"] > 0:
                 continue_redo_tasks(consider_retry_config=True)

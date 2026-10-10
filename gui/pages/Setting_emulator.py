@@ -51,6 +51,7 @@ def set_emulator(config):
             ui.input(config.get_text("config_cloud_entry")).bind_value(config.userconfigdict, 'CLOUD_PLATFORM_ENTRY').style('width: 420px')
             ui.input(config.get_text("config_cloud_game_name")).bind_value(config.userconfigdict, 'CLOUD_GAME_NAME').style('width: 420px')
             ui.number(config.get_text("config_cloud_stream_timeout"), min=60, precision=0, step=10).bind_value(config.userconfigdict, "CLOUD_STREAM_TIMEOUT", forward=lambda x: int(x)).style("width: 240px")
+            ui.number(config.get_text("config_cloud_recovery_times"), min=1, max=10, precision=0, step=1).bind_value(config.userconfigdict, "CLOUD_RECOVERY_MAX_TIMES", forward=lambda x: int(x)).style("width: 240px")
             # 仅国服提醒
             ui.label(config.get_text("cloud_notice_cn_only")).style('color: red; font-size: medium')\
                 .bind_visibility_from(config.userconfigdict, "SERVER_TYPE", lambda v: v != "CN")

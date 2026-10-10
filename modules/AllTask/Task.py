@@ -4,10 +4,11 @@ from DATA.assets.PopupName import PopupName
 from DATA.assets.ButtonName import ButtonName
 
 
-from modules.utils import click, swipe, match, page_pic, match_pixel, button_pic, popup_pic, sleep, screenshot, config, istr, CN, EN, ocr_area, logic_run_until, _is_PC_app, _is_STEAM_app, is_server_type_in_group, MultiServerType, get_correct_asset, AssetMappingKeys
+from modules.utils import click, swipe, match, page_pic, match_pixel, button_pic, popup_pic, sleep, screenshot, config, istr, CN, EN, ocr_area, logic_run_until, _is_PC_app, _is_STEAM_app, is_server_type_in_group, MultiServerType, get_correct_asset, AssetMappingKeys, is_cloud_mode, is_cloud_streaming
 
 from modules.utils.adb_utils import check_app_running, open_app
 from modules.utils.baah_exceptions import EmulatorBlockError
+from modules.AllTask.EnterGame.OpenCloudGame import recover_cloud_game
 from modules.utils.log_utils import logging
 import numpy as np
 
@@ -86,6 +87,9 @@ class Task:
         """
         logging.info({"zh_CN": "尝试返回主页", "en_US":"Try back to homepage"})
         can_back_home = False
+        # 云游戏模式：云游戏中断（闪退）时先恢复云游戏，再走原有返回主页逻辑
+        if is_cloud_mode() and not is_cloud_streaming():
+            recover_cloud_game()
         if not check_app_running(config.userconfigdict["ACTIVITY_PATH"]):
             open_app(config.userconfigdict["ACTIVITY_PATH"])
         for i in range(times):

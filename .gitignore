@@ -187,3 +187,6 @@ BAAH_CONFIGS/
 
 # requirforyou.py generated files
 requireforyou.txt
+
+# bat
+baah_*.bat

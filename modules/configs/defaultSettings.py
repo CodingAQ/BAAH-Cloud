@@ -71,8 +71,10 @@ defaultUserDict = {
     },
     # 在云平台内要启动的游戏名称（用于OCR查找游戏入口）
     "CLOUD_GAME_NAME":{"d":"蔚蓝档案"},
-    # 等待云游戏串流建立的超时时间（秒）
+    # 等待云游戏建立的超时时间（秒）
     "CLOUD_STREAM_TIMEOUT":{"d":240},
+    # 云游戏中断后单轮自动恢复的重试次数，恢复失败会先重启模拟器一次再放弃
+    "CLOUD_RECOVERY_MAX_TIMES":{"d":3},
     "TARGET_EMULATOR_PATH":{"d":""},
     "CLOSE_EMULATOR_BAAH":{"d":False}, # deprecate
     "CLOSE_EMULATOR_FINISH":{
