@@ -22,6 +22,8 @@ from modules.utils.adb_utils import (open_app, check_app_running,
                                      get_now_running_app, is_cloud_mode,
                                      is_cloud_streaming)
 from modules.utils.baah_exceptions import EmulatorBlockError, CloudStreamInterruptError
+from modules.configs.settingMaps import (cloud2detail_activity, cloud2start_texts,
+                                         cloud2claim_texts, get_cloud_platform_config)
 
 
 def _ocr_full_screen():
@@ -119,11 +121,18 @@ def _find_and_click_game(game_name) -> bool:
 
 def _click_start_game() -> bool:
     """在游戏详情页OCR查找并点击"开始游戏"按钮，返回云游戏是否已建立"""
+    start_texts = get_cloud_platform_config(cloud2start_texts,
+                                            config.userconfigdict["RUN_PLATFORM"],
+                                            ["开始游戏"])
     for i in range(10):
         screenshot()
         if is_cloud_streaming():
             return True
-        pos = _ocr_find_text("开始游戏")
+        pos = None
+        for t in start_texts:
+            pos = _ocr_find_text(t)
+            if pos is not None:
+                break
         if pos is not None:
             logging.info(istr({
                 CN: f"点击开始游戏按钮 {pos}",
@@ -186,11 +195,15 @@ def _claim_daily_duration() -> None:
     点击后可能出现确认弹窗，尝试点掉常见确认按钮。
     检查/领取失败只记录警告，不影响后续进入游戏的流程。
     """
-    # 按钮文案候选（主文案在前，兼容可能的变体）
-    claim_texts = ["签到并领取时长", "签到领时长", "领取时长"]
+    # 按钮文案候选由平台映射表提供（空列表=该平台无此功能，直接跳过）
+    claim_texts = get_cloud_platform_config(cloud2claim_texts,
+                                            config.userconfigdict["RUN_PLATFORM"],
+                                            [])
     # 已领取状态文案，出现则直接跳过
     claimed_texts = ["已领取", "已签到"]
     try:
+        if not claim_texts:
+            return
         for _ in range(3):
             screenshot()
             if any([_ocr_find_text(t) is not None for t in claimed_texts]):
@@ -241,7 +254,11 @@ def _recover_once(game_name) -> bool:
     if is_cloud_streaming():
         return True
     foreground = _get_foreground_activity()
-    if "GameDetailActivity" in foreground and _ocr_find_text(game_name) is not None:
+    # 详情页特征由平台映射表提供（未注册的平台回落空串=无法识别详情页，走完整流程）
+    detail_activity = get_cloud_platform_config(cloud2detail_activity,
+                                                config.userconfigdict["RUN_PLATFORM"],
+                                                "")
+    if detail_activity and detail_activity in foreground and _ocr_find_text(game_name) is not None:
         logging.info(istr({
             CN: "当前在游戏详情页，直达开始游戏",
             EN: "Now on the game detail page, click start game directly"

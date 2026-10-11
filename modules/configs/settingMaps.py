@@ -38,6 +38,32 @@ cloud2entry = {
 cloud2stream_activity = {
     "CLOUD_JYS":"com.haima.cloud.mobile.sdk.ui.activity.CloudPlayActivity",
 }
+# 云平台"游戏详情页"的activity特征（闪退回详情页时可直达"开始游戏"）
+cloud2detail_activity = {
+    "CLOUD_JYS":"GameDetailActivity",
+}
+# 云平台"开始游戏"按钮的OCR文案候选
+cloud2start_texts = {
+    "CLOUD_JYS":["开始游戏"],
+}
+# 云平台"签到并领取时长"的OCR文案候选（空列表=该平台无此功能，跳过检查）
+cloud2claim_texts = {
+    "CLOUD_JYS":["签到并领取时长", "签到领时长", "领取时长"],
+}
+# 云平台支持的区服限制（空列表=不限制）
+cloud2server_limit = {
+    "CLOUD_JYS":["CN"],
+}
+
+
+def get_cloud_platform_config(table, platform, default):
+    """
+    读取云平台差异配置的统一入口
+
+    平台在表中时返回表值，否则返回 default（全局缺省）。
+    新增云平台时只需在 cloud2* 各表注册自己的值，逻辑文件零改动。
+    """
+    return table.get(platform, default)
 
 server2respond = {
     "JP":40,

@@ -18,8 +18,8 @@ from .ExchangeItem import ExchangeItem
 
 from modules.utils import (click, swipe, match, match_pixel, page_pic, button_pic, popup_pic, sleep, ocr_area, screenshot,
                            check_app_running, open_app, get_now_running_app_entrance_activity, get_now_running_app, istr, CN, EN,
-                           get_correct_asset, AssetMappingKeys, is_cloud_mode, is_cloud_streaming)
-from modules.AllTask.EnterGame.OpenCloudGame import recover_cloud_game
+                           get_correct_asset, AssetMappingKeys)
+from modules.utils.game_env import is_cloud_mode, is_game_ready, ensure_game_ready
 
 
 class InEvent(Task):
@@ -95,15 +95,17 @@ class InEvent(Task):
         判断页面是否是一个有效的活动页面
         """
         # 判断是否是在ba游戏里
-        if is_cloud_mode():
-            # 云游戏模式：游戏运行在云平台的云游戏页里，前台包名永远是云平台，
-            # 入口activity校验不适用，只需确保云游戏正常（中断则恢复）
-            if not is_cloud_streaming():
-                logging.warn({"zh_CN": "云游戏已中断，尝试恢复", "en_US": "Cloud game interrupted, try to recover"})
-                recover_cloud_game()
-                screenshot()  # 恢复后重新截图供后续判断
-        elif not check_app_running(config.userconfigdict['ACTIVITY_PATH']) or get_now_running_app_entrance_activity() != \
-                config.userconfigdict['ACTIVITY_PATH'] or "webview" in get_now_running_app().lower():
+        if not is_game_ready():
+            # 游戏环境未就绪（云模式下=云游戏中断）：先恢复游戏环境
+            logging.warn({"zh_CN": "游戏环境未就绪，尝试恢复", "en_US": "Game environment not ready, try to recover"})
+            ensure_game_ready()
+            if not is_game_ready():
+                # 恢复后仍未就绪，保持原有失败语义（云模式恢复失败会由恢复函数自行抛降级异常，一般走不到这里）
+                logging.error({"zh_CN": "重新进入游戏失败", "en_US": "Failed to re-enter the game"})
+                raise Exception("重新进入游戏失败")
+            screenshot()  # 恢复后重新截图供后续判断
+        elif not is_cloud_mode() and (not check_app_running(config.userconfigdict['ACTIVITY_PATH']) or get_now_running_app_entrance_activity() != \
+                config.userconfigdict['ACTIVITY_PATH'] or "webview" in get_now_running_app().lower()):
             logging.warn({"zh_CN": "跳转出了游戏，尝试重新进入游戏",
                           "en_US": "Try to re-enter the game after jumping out of the game"})
             open_app(config.userconfigdict['ACTIVITY_PATH'])

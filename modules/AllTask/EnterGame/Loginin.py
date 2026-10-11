@@ -9,10 +9,11 @@ from modules.AllTask.Task import Task
 
 from modules.utils.log_utils import logging
 
-from modules.utils import click, swipe, match, page_pic, button_pic, popup_pic, sleep, check_app_running, open_app, config, screenshot, EmulatorBlockError, istr, CN, EN, match_pixel, OCR_LANG, ocr_area, get_screenshot_cv_data, is_server_type_in_group, MultiServerType, get_correct_asset, AssetMappingKeys, is_cloud_mode, is_cloud_streaming
+from modules.utils import click, swipe, match, page_pic, button_pic, popup_pic, sleep, check_app_running, open_app, config, screenshot, EmulatorBlockError, istr, CN, EN, match_pixel, OCR_LANG, ocr_area, get_screenshot_cv_data, is_server_type_in_group, MultiServerType, get_correct_asset, AssetMappingKeys
+
+from modules.utils.game_env import is_cloud_mode, is_game_ready, ensure_game_ready
 
 from modules.AllTask.EnterGame.GameUpdate import GameUpdate
-from modules.AllTask.EnterGame.OpenCloudGame import recover_cloud_game
 
 from define_actions import FlowActionGroup
 # =====
@@ -144,17 +145,10 @@ class Loginin(Task):
                 filter_item_box = ocr_list[0][2]
                 click(((filter_item_box[0][0] + filter_item_box[1][0]) // 2, (filter_item_box[0][1] + filter_item_box[1][1]) // 2),
                     sleeptime=5)
-        # 云游戏模式：云平台在前台但不在云游戏中（闪退回详情页/首页/云平台被杀），自动恢复
-        elif is_cloud_mode() and not is_cloud_streaming():
-            recovered_seconds = recover_cloud_game()
+        # 游戏环境未就绪（云模式=云游戏中断；本地=游戏未在前台），恢复/打开游戏
+        elif not is_game_ready():
             # 减免恢复耗时，避免一次恢复吃掉登录超时预算
-            self.task_start_time += recovered_seconds
-            screenshot()
-        # 确认处在游戏界面
-        elif not check_app_running(config.userconfigdict['ACTIVITY_PATH'], printit=False):
-            open_app(config.userconfigdict['ACTIVITY_PATH'])
-            logging.warn({"zh_CN": "游戏未在前台，尝试打开游戏", "en_US":"The game is not in the foreground, try to open the game"})
-            sleep(2)
+            self.task_start_time += ensure_game_ready()
             screenshot()
 
         # 大更新

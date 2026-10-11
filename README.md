@@ -4,6 +4,8 @@
 
 ---
 
+本项目基于 https://github.com/BlueArchiveArisHelper/BAAH 改动而成，支持通过第三方云游戏平台完成游戏每日等任务
+
 BAAH可以帮助你在模拟器内自动完成碧蓝档案（国际服，日服，国服）的每日任务
 
 BAAH can help you finish daily tasks of BlueArchive (Global server, Japan server, CN server) in emulator automatically.

@@ -60,7 +60,8 @@ defaultUserDict = {
         "p": lambda val, parsedjson: "PC_"+val if val.startswith("STEAM") else val # 2.0.10 兼容 STEAM 到 PC_STEAM 的改名
     },
     # 云游戏平台支持：游戏运行平台，LOCAL为本地游戏程序，CLOUD_开头为第三方云游戏平台
-    "RUN_PLATFORM":{"d":"LOCAL", "s":["LOCAL", "CLOUD_JYS"]},
+    # 可选值由 settingMaps.cloud2entry 动态生成，新增云平台只需注册映射表
+    "RUN_PLATFORM":{"d":"LOCAL", "s":["LOCAL"] + list(cloud2entry.keys())},
     # 云平台的入口activity，缺省时由RUN_PLATFORM从settingMaps.cloud2entry映射
     "CLOUD_PLATFORM_ENTRY":{
         "d":"",

@@ -41,10 +41,11 @@ def set_emulator(config):
 
     with ui.card():
         ui.label(config.get_text("config_run_platform")).style('font-size: large')
-        ui.radio({
-                "LOCAL":config.get_text("config_run_platform_local"),
-                "CLOUD_JYS":config.get_text("config_run_platform_cloud_jys")
-            },
+        # 平台选项动态生成：LOCAL + 所有已注册的云平台（i18n key 约定 config_run_platform_{平台小写}）
+        platform_options = {"LOCAL": config.get_text("config_run_platform_local")}
+        for _p in cloud2entry.keys():
+            platform_options[_p] = config.get_text(f"config_run_platform_{_p.lower()}")
+        ui.radio(platform_options,
             value=config.userconfigdict['RUN_PLATFORM'], on_change=lambda a:set_run_platform(a.value)).props('inline')
         # 云游戏模式子选项
         with ui.column().bind_visibility_from(config.userconfigdict, "RUN_PLATFORM", lambda v: str(v).startswith("CLOUD_")):

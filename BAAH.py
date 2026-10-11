@@ -311,13 +311,14 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                 CN: "检测到云游戏模式，启动云平台并进入游戏",
                 EN: "Cloud game mode detected, starting the cloud platform and entering the game"
             }))
-            # 校验区服：云平台上的游戏区服有限制
-            from modules.configs.settingMaps import cloud2entry
+            # 校验区服：云平台支持的游戏区服有限制（由 settingMaps.cloud2server_limit 配置，空=不限制）
+            from modules.configs.settingMaps import cloud2server_limit, get_cloud_platform_config
             platform_name = config.userconfigdict["RUN_PLATFORM"]
-            if platform_name == "CLOUD_JYS" and config.userconfigdict["SERVER_TYPE"] != "CN":
+            server_limit = get_cloud_platform_config(cloud2server_limit, platform_name, [])
+            if server_limit and config.userconfigdict["SERVER_TYPE"] not in server_limit:
                 raise Exception(istr({
-                    CN: "集游社云游戏目前仅支持国服(CN)，请修改区服设置",
-                    EN: "JiYouShe cloud platform only supports CN server, please change the server setting"
+                    CN: f"{platform_name} 仅支持 {'/'.join(server_limit)}，请修改区服设置",
+                    EN: f"{platform_name} only supports  {'/'.join(server_limit)}, please change the server setting"
                 }))
             if is_cloud_streaming():
                 logging.info(istr({
