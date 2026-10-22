@@ -76,6 +76,8 @@ defaultUserDict = {
     "CLOUD_STREAM_TIMEOUT":{"d":240},
     # 云游戏中断后单轮自动恢复的重试次数，恢复失败会先重启模拟器一次再放弃
     "CLOUD_RECOVERY_MAX_TIMES":{"d":3},
+    # 连接模拟器时结束所有已打开的应用并回到桌面
+    "KILL_ALL_APPS_WHEN_CONNECT":{"d":False},
     "TARGET_EMULATOR_PATH":{"d":""},
     "CLOSE_EMULATOR_BAAH":{"d":False}, # deprecate
     "CLOSE_EMULATOR_FINISH":{
@@ -132,7 +134,7 @@ defaultUserDict = {
             "from": "SERVER_TYPE",
             "map": lambda x, parsedjson: server2activity[x] if x in server2activity else "com.nexon.bluearchive/.MxUnityPlayerActivity",
         },
-        # 云游戏模式下，ACTIVITY_PATH覆写为云平台入口（前台包名监测/打开/关闭游戏都作用于云平台，同PC版的窗口名/进程名机制）
+        # [CLOUD-MOD] 上游行被改写：云游戏模式下，ACTIVITY_PATH覆写为云平台入口（前台包名监测/打开/关闭游戏都作用于云平台，同PC版的窗口名/进程名机制）
         "p": lambda val, parsedjson: cloud2entry[parsedjson["RUN_PLATFORM"]] if parsedjson.get("RUN_PLATFORM") in cloud2entry else (server2activity[parsedjson["SERVER_TYPE"]] if parsedjson["SERVER_TYPE"] in server2activity else val)
     },
     "NEXT_CONFIG" : {"d":""},
@@ -143,8 +145,6 @@ defaultUserDict = {
     "TARGET_IP_PATH":{"d":"127.0.0.1"},
     "TARGET_PORT":{"d":5555},
     "ADB_DISABLE_AUTO_DISCONNECT": {"d":False},
-    # 连接模拟器时结束所有已打开的应用并回到桌面
-    "KILL_ALL_APPS_WHEN_CONNECT":{"d":False},
     "KILL_PORT_IF_EXIST":{"d":False},
     "TIME_AFTER_CLICK":{"d": 0.7},
     "RESPOND_Y":{

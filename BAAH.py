@@ -38,9 +38,13 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
 
     import os
     import psutil
-    from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN, check_if_process_exist, _is_PC_app, get_screenshot_cv_data,return_now_activate_pipeline, is_cloud_mode, is_cloud_streaming, get_config_adb_path, kill_all_apps
+    from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN, check_if_process_exist, _is_PC_app, get_screenshot_cv_data,return_now_activate_pipeline, get_config_adb_path
     from modules.AllTask.myAllTask import my_AllTask
     from define_actions import FlowActionGroup
+
+    # [BAAH-CLOUD-MOD] 云游戏相关导入独立成行，不混入上方上游的 import 括号列表（降低合并冲突面）
+    from modules.utils.game_env import is_cloud_mode, is_cloud_streaming
+    from modules.utils.adb_cleanup import kill_all_apps
 
     def print_BAAH_info():
         logging.info("+" + "BAAH".center(80, "=") + "+")
@@ -657,6 +661,9 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         # TODO: 网页报告生成
         logging.info({"zh_CN": "错误报告生成完成", "en_US": "Crash report generated"})
                     
+    # [BAAH-CLOUD-MOD] 上游原将此函数定义在下方 except Exception 块内部；
+    # 因 CloudStreamInterruptError 分支（位于 EmulatorBlockError 与 Exception 之间）
+    # 也需调用它，故提取到外层作用域。上游若改动该函数体，合并时请对照此处。
     def continue_redo_tasks(consider_retry_config = False):
         """出错后从出错点继续执行脚本（供各except分支共用）"""
         if consider_retry_config:

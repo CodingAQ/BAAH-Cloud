@@ -18,9 +18,8 @@ import time
 from modules.utils import (click, swipe, screenshot, config, ocr_area,
                            get_screenshot_cv_data, logging, istr, CN, EN,
                            OCR_LANG, sleep)
-from modules.utils.adb_utils import (open_app, check_app_running,
-                                     get_now_running_app, is_cloud_mode,
-                                     is_cloud_streaming)
+from modules.utils.adb_utils import open_app, check_app_running, get_now_running_app
+from modules.utils.game_env import is_cloud_mode, is_cloud_streaming
 from modules.utils.baah_exceptions import EmulatorBlockError, CloudStreamInterruptError
 from modules.configs.settingMaps import (cloud2detail_activity, cloud2start_texts,
                                          cloud2claim_texts, get_cloud_platform_config)
