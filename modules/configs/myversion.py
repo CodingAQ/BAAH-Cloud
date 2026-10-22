@@ -1,8 +1,12 @@
-myversion = "2.4.13"
+myversion = "2.4.16"
 mychangelog = """
 
-可以单独为课程表想要优先点击的学生各自设置权重了 | Can now set weights for favor students in timetable
+修复日服新活动只有quest页标签无法识别的问题 | Fixed the problem that the new event in the Japanese server can only recognize the quest page tag
 
-添加了启动路径兼容，不再要求从BAAH项目目录运行程序 | No longer require running the program from the BAAH project directory
+修复日服大决战不进入战斗的问题 | Fixed the problem of not entering the battle in the Japanese server's final battle
+
+修复29-4推图问题 | Fixed the problem of 29-4 quest
+
+修复战斗过程出现网络异常时，卡死在无限判断中的问题 | Fixed the problem of being stuck in infinite judgment when a network exception occurs during the battle process
 
 """
