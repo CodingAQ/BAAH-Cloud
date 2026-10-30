@@ -39,6 +39,7 @@ def set_notification(config, shared_softwareconfig):
         
         with ui.card():
             ui.checkbox(config.get_text("config_api_noti")).bind_value(config.userconfigdict, "ENABLE_HTTP_NOTI")
+            ui.select({0: "GET", 1: "POST (application/json)"}, label=config.get_text("config_api_noti_method")).bind_value(config.userconfigdict, "WEB_NOTI_TYPE_GET_OR_POST").style("width: 300px")
             ui.input(config.get_text("config_api_noti_token"),
                      password=True,
                      password_toggle_button=True
@@ -47,6 +48,11 @@ def set_notification(config, shared_softwareconfig):
             # 目标url
             ui.label("Keywords: [token], [title], [content]")
             ui.input(config.get_text("config_api_noti_url")).bind_value(config.userconfigdict, "TARGET_HTTP_URL").style("width: 500px")
+            with ui.column().bind_visibility_from(config.userconfigdict, "WEB_NOTI_TYPE_GET_OR_POST", backward=lambda x: x == 1):
+                ui.label(config.get_text("config_api_noti_body_desc"))
+                ui.textarea(label=config.get_text("config_api_noti_body"),
+                            placeholder='{"token": "[token]", "title": "[title]", "content": "[content]"}'
+                            ).bind_value(config.userconfigdict, "WEB_NOTI_POST_CONTENT").style("width: 500px; height: 200px")
             
             # 提供一些自动填充按钮
             mapdict = {
@@ -59,11 +65,15 @@ def set_notification(config, shared_softwareconfig):
                     ui.button(type, color=None, on_click=lambda type=type: set_api_noti_type(type))
             def set_api_noti_type(type):
                 config.userconfigdict["TARGET_HTTP_URL"] = mapdict.get(type, "")
+                # 用户切换渠道，先只改url格式
+                # config.userconfigdict["WEB_NOTI_TYPE_GET_OR_POST"] = 0
             
             # 官网
             ui.link("PushPlus", "http://www.pushplus.plus/", new_tab=True)
             ui.link("ServerChan", "https://sct.ftqq.com/r/13283", new_tab=True)
             ui.link("Telegram Bot", "https://t.me/BotFather", new_tab=True)
     
-    with ui.row():
+    # 说明与输入框保持同列，原有 placeholder 和配置绑定不变。
+    with ui.column().classes('baah-described-field'):
+        ui.label(config.get_text('desc_noti_content_diy_hint')).classes('baah-help-text')
         ui.textarea(placeholder=config.get_text("desc_noti_content_diy")).bind_value(config.userconfigdict, "CUSTOM_EMAIL").style("width: 500px; height: 200px")
