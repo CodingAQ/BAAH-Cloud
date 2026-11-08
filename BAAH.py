@@ -39,11 +39,13 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
     import os
     import traceback
     import psutil
-    from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN, check_if_process_exist, _is_PC_app, get_screenshot_cv_data,return_now_activate_pipeline, get_config_adb_path
+    from modules.utils import subprocess_run, time, disconnect_this_device, sleep, check_connect, open_app, close_app, get_now_running_app, screenshot, click, check_app_running, subprocess, create_notificationer, EmulatorBlockError, istr, EN, CN, check_if_process_exist, _is_PC_app, get_screenshot_cv_data,return_now_activate_pipeline, enter_PC_APP_edit_mode, quit_PC_APP_edit_mode
+    from modules.configs.multiserverSettings import is_server_type_in_group, MultiServerType
     from modules.AllTask.myAllTask import my_AllTask
     from define_actions import FlowActionGroup
 
     # [BAAH-CLOUD-MOD] 云游戏相关导入独立成行，不混入上方上游的 import 括号列表（降低合并冲突面）
+    from modules.utils import get_config_adb_path
     from modules.utils.game_env import is_cloud_mode, is_cloud_streaming
     from modules.utils.adb_cleanup import kill_all_apps
 
@@ -286,24 +288,31 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
         """
         启动加速器
         """
+        if is_server_type_in_group(config, MultiServerType.PCGroup):
+            enter_PC_APP_edit_mode(config)
         if config.userconfigdict["USE_VPN"]:
             logging.info({"zh_CN": "启动指定的加速器", "en_US": "Starting the specified accelerator"})
             open_VPN_flow = FlowActionGroup().load_from_dict(config.userconfigdict["OBJ_ACTIONS_VPN_START"])
             open_VPN_flow.run_flow()
         else:
             logging.info({"zh_CN": "跳过启动加速器", "en_US": "Skip startup accelerator"})
+        if is_server_type_in_group(config, MultiServerType.PCGroup):
+            quit_PC_APP_edit_mode(config)
     
     def BAAH_close_VPN():
         """
         关闭加速器
         """
+        if is_server_type_in_group(config, MultiServerType.PCGroup):
+            enter_PC_APP_edit_mode(config)
         if config.userconfigdict["CLOSE_VPN"]:
             logging.info({"zh_CN": "关闭指定的加速器", "en_US": "Stop the specified accelerator"})
             open_VPN_flow = FlowActionGroup().load_from_dict(config.userconfigdict["OBJ_ACTIONS_VPN_SHUT"])
             open_VPN_flow.run_flow()
         else:
             logging.info({"zh_CN": "跳过关闭加速器", "en_US": "Skip stop accelerator"})
-
+        if is_server_type_in_group(config, MultiServerType.PCGroup):
+            quit_PC_APP_edit_mode(config)
 
     def BAAH_open_target_app():
         """
@@ -723,10 +732,16 @@ def BAAH_core_process(reread_config_name = None, must_auto_quit = False, msg_que
                 if run_precommand:
                     BAAH_run_pre_command()
                 BAAH_release_adb_port()
+                if is_server_type_in_group(config, MultiServerType.PCGroup):
+                    # PC的ba，先开加速器再启动游戏程序
+                    BAAH_start_VPN()
                 BAAH_start_emulator()
                 BAAH_check_adb_connect()
+                # [BAAH-CLOUD-MOD] 连接模拟器后先清掉残留应用（云平台等），再启动加速器/云平台
                 BAAH_kill_all_apps()
-                BAAH_start_VPN()
+                if not is_server_type_in_group(config, MultiServerType.PCGroup):
+                    # 模拟器的ba，先启动模拟器程序再开加速器
+                    BAAH_start_VPN()
                 BAAH_open_target_app()
                 
                 # 运行任务
