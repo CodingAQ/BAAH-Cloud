@@ -19,7 +19,7 @@ from .PushLevel import PushLevel
 
 from modules.utils import (click, swipe, match, match_pixel, page_pic, button_pic, popup_pic, sleep, ocr_area, screenshot,
                            check_app_running, open_app, get_now_running_app_entrance_activity, get_now_running_app, istr, CN, EN,
-                           get_correct_asset, AssetMappingKeys, OCR_LANG)
+                           get_correct_asset, AssetMappingKeys, day_plan_index, OCR_LANG)
 from modules.utils.game_env import is_cloud_mode, is_game_ready, ensure_game_ready
 
 
@@ -381,7 +381,7 @@ class InEvent(Task):
         # 扫荡任务
         if not self.dont_raid_quest and (config.userconfigdict["EVENT_QUEST_LEVEL"] and len(config.userconfigdict["EVENT_QUEST_LEVEL"]) != 0):
             # 可选任务队列不为空时
-            quest_loc = today % len(config.userconfigdict['EVENT_QUEST_LEVEL'])
+            quest_loc = day_plan_index(today, len(config.userconfigdict['EVENT_QUEST_LEVEL']))
             # 得到要执行的QUEST LIST
             # [[10, -1],[11, -1]]
             quest_list = config.userconfigdict['EVENT_QUEST_LEVEL'][quest_loc]
